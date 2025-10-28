@@ -70,7 +70,7 @@ export default {
   },
 
   async 处理伪装网页请求(访问请求, 请求URL) {
-    if (!伪装网页) return null;
+    if (!伪装网页) return new Response(null, { status: 404 });
 
     try {
       // 构建目标URL
@@ -111,7 +111,7 @@ export default {
       const 匹配工具 = Object.keys(配置生成器).find(工具 => 用户代理.includes(工具));
       return 配置生成器[匹配工具 || '提示']();
     }
-    
+
     return new Response(null, { status: 404 });
   }
 };
