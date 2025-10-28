@@ -179,11 +179,6 @@ function 生成提示界面() {
     box-sizing: border-box;
     overflow: hidden;
   }
-  
-  strong {
-    max-width: 90%;
-    word-wrap: break-word;
-  }
 </style>
 <strong>请把链接导入 ${科拉什} 或 ${威图锐}</strong>
 `;
