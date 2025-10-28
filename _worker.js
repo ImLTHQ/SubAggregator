@@ -169,7 +169,20 @@ function 生成提示界面() {
   body {
     font-size: 25px;
     text-align: center;
-    margin-top: 50px;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  
+  strong {
+    max-width: 90%;
+    word-wrap: break-word;
   }
 </style>
 <strong>请把链接导入 ${科拉什} 或 ${威图锐}</strong>
