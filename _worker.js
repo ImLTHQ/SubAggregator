@@ -2,6 +2,7 @@
 let 订阅路径 = "订阅路径";
 let 伪装网页;
 let 订阅链接列表 = [];
+let 手动输入列表 = [];
 
 let 威图锐拆分_1 = "v2";
 let 威图锐拆分_2 = "ray";
@@ -33,6 +34,18 @@ export default {
           return url;
         })
         .filter((url, index, array) => array.indexOf(url) === index); // URL去重
+    }
+
+    // 处理TXT变量中的节点信息
+    if (env.TXT) {
+      手动输入列表 = env.TXT.split('\n')
+        .map(line => line.trim())
+        .filter(line => line && line.includes('#')) // 过滤空行和不符合格式的行
+        .map(line => {
+          const [地址, uuid] = line.split('#').map(item => item.trim());
+          return { 地址, uuid };
+        })
+        .filter(item => item.地址 && item.uuid); // 确保地址和UUID都存在
     }
 
     const url = new URL(访问请求.url);
@@ -108,42 +121,46 @@ export default {
 async function 获取聚合节点信息() {
   let 所有节点信息 = [];
   
-  if (订阅链接列表.length === 0) {
-    return [{
-      地址: "127.0.0.1",
-      uuid: "00000000-0000-4000-8000-000000000000",
-      节点名字: "没有可用节点"
-    }];
-  }
+  // 先添加从TXT获取的自定义节点
+  手动输入列表.forEach(({地址, uuid}) => {
+    所有节点信息.push({
+      地址,
+      uuid,
+      节点名字: `节点-${所有节点信息.length + 1}`
+    });
+  });
 
-  for (let i = 0; i < 订阅链接列表.length; i++) {
-    const 订阅链接 = 订阅链接列表[i];
-    try {
-      const 响应 = await fetch(订阅链接, {
-        headers: {
-          'User-Agent': 'info'
-        }
-      });
-      
-      if (响应.ok) {
-        const 响应文本 = await 响应.text();
-        const 节点信息行 = 响应文本.split('\n')
-          .map(line => line.trim())
-          .filter(line => line && line.includes('#'));
-        
-        节点信息行.forEach((行, 索引) => {
-          const [地址, uuid] = 行.split('#');
-          if (地址 && uuid) {
-            所有节点信息.push({
-              地址: 地址.trim(),
-              uuid: uuid.trim(),
-              节点名字: `节点-${所有节点信息.length + 1}`
-            });
+  // 再处理订阅链接中的节点
+  if (订阅链接列表.length > 0) {
+    for (let i = 0; i < 订阅链接列表.length; i++) {
+      const 订阅链接 = 订阅链接列表[i];
+      try {
+        const 响应 = await fetch(订阅链接, {
+          headers: {
+            'User-Agent': 'info'
           }
         });
+        
+        if (响应.ok) {
+          const 响应文本 = await 响应.text();
+          const 节点信息行 = 响应文本.split('\n')
+            .map(line => line.trim())
+            .filter(line => line && line.includes('#'));
+          
+          节点信息行.forEach((行) => {
+            const [地址, uuid] = 行.split('#');
+            if (地址 && uuid) {
+              所有节点信息.push({
+                地址: 地址.trim(),
+                uuid: uuid.trim(),
+                节点名字: `节点-${所有节点信息.length + 1}`
+              });
+            }
+          });
+        }
+      } catch {
+        console.error(`获取订阅失败: ${订阅链接}`);
       }
-    } catch {
-      console.error(`获取订阅失败: ${订阅链接}`);
     }
   }
 
@@ -156,11 +173,11 @@ async function 获取聚合节点信息() {
     }];
   }
 
-  // 基于地址去重，保留第一个出现的节点
+  // 基于地址去重，保留第一个出现的节点（自定义节点优先）
   const 已见主机名 = new Set();
   const 去重节点信息 = [];
   
-  所有节点信息.forEach((节点, 索引) => {
+  所有节点信息.forEach((节点) => {
     if (!已见主机名.has(节点.地址)) {
       已见主机名.add(节点.地址);
       // 重新编号节点名字
