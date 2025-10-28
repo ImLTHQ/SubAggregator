@@ -90,7 +90,7 @@ export default {
 
       return await fetch(转发请求);
     } catch {
-      return new Response(null);
+      return new Response(null, { status: 404 });
     }
   },
 
@@ -112,7 +112,7 @@ export default {
       return 配置生成器[匹配工具 || '提示']();
     }
     
-    return new Response(null);
+    return new Response(null, { status: 404 });
   }
 };
 
