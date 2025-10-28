@@ -1,7 +1,6 @@
-// 多订阅聚合配置
+// 多订阅聚合配置（仅保留TXT节点数据）
 let 订阅路径 = "订阅路径";
 let 伪装网页;
-let 订阅链接列表 = [];
 let 手动输入列表 = [];
 
 let 威图锐拆分_1 = "v2";
@@ -22,21 +21,7 @@ export default {
     订阅路径 = env.SUB_PATH ?? 订阅路径;
     伪装网页 = env.FAKE_WEB;
     
-    // 处理订阅链接列表
-    if (env.URL) {
-      订阅链接列表 = env.URL.split('\n')
-        .map(url => url.trim())
-        .filter(url => url)
-        .map(url => {
-          if (!url.includes('http://') && !url.includes('https://')) {
-            return `https://${url}`;
-          }
-          return url;
-        })
-        .filter((url, index, array) => array.indexOf(url) === index); // URL去重
-    }
-
-    // 处理TXT变量中的节点信息
+    // 仅处理TXT变量中的节点信息
     if (env.TXT) {
       手动输入列表 = env.TXT.split('\n')
         .map(line => line.trim())
@@ -91,20 +76,20 @@ export default {
     }
 
     if (!WS请求) {
-      // 获取聚合节点信息
-      const 聚合节点信息 = await 获取聚合节点信息();
+      // 获取节点信息（仅来自TXT）
+      const 节点信息 = await 获取节点信息();
       
       if (url.pathname === 路径配置.威图锐) {
-        return 威图锐配置文件(聚合节点信息);
+        return 威图锐配置文件(节点信息);
       }
       else if (url.pathname === 路径配置.科拉什) {
-        return 科拉什配置文件(聚合节点信息);
+        return 科拉什配置文件(节点信息);
       }
       else if (url.pathname === 路径配置.通用订阅) {
         const 用户代理 = 访问请求.headers.get("User-Agent")?.toLowerCase() || "";
         const 配置生成器 = {
-          [威图锐]: () => 威图锐配置文件(聚合节点信息),
-          [科拉什]: () => 科拉什配置文件(聚合节点信息),
+          [威图锐]: () => 威图锐配置文件(节点信息),
+          [科拉什]: () => 科拉什配置文件(节点信息),
           tips: () => 提示界面(),
         };
         const 工具 = Object.keys(配置生成器).find((工具) => 用户代理.includes(工具));
@@ -117,11 +102,11 @@ export default {
   },
 };
 
-// 获取聚合节点信息
-async function 获取聚合节点信息() {
+// 获取节点信息（仅处理TXT中的节点）
+async function 获取节点信息() {
   let 所有节点信息 = [];
   
-  // 先添加从TXT获取的自定义节点
+  // 添加从TXT获取的自定义节点
   手动输入列表.forEach(({地址, uuid}) => {
     所有节点信息.push({
       地址,
@@ -129,40 +114,6 @@ async function 获取聚合节点信息() {
       节点名字: `节点-${所有节点信息.length + 1}`
     });
   });
-
-  // 再处理订阅链接中的节点
-  if (订阅链接列表.length > 0) {
-    for (let i = 0; i < 订阅链接列表.length; i++) {
-      const 订阅链接 = 订阅链接列表[i];
-      try {
-        const 响应 = await fetch(订阅链接, {
-          headers: {
-            'User-Agent': 'info'
-          }
-        });
-        
-        if (响应.ok) {
-          const 响应文本 = await 响应.text();
-          const 节点信息行 = 响应文本.split('\n')
-            .map(line => line.trim())
-            .filter(line => line && line.includes('#'));
-          
-          节点信息行.forEach((行) => {
-            const [地址, uuid] = 行.split('#');
-            if (地址 && uuid) {
-              所有节点信息.push({
-                地址: 地址.trim(),
-                uuid: uuid.trim(),
-                节点名字: `节点-${所有节点信息.length + 1}`
-              });
-            }
-          });
-        }
-      } catch {
-        console.error(`获取订阅失败: ${订阅链接}`);
-      }
-    }
-  }
 
   // 如果没有获取到任何节点信息，返回默认节点
   if (所有节点信息.length === 0) {
@@ -173,7 +124,7 @@ async function 获取聚合节点信息() {
     }];
   }
 
-  // 基于地址去重，保留第一个出现的节点（自定义节点优先）
+  // 基于地址去重，保留第一个出现的节点
   const 已见主机名 = new Set();
   const 去重节点信息 = [];
   
