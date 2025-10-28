@@ -1,4 +1,3 @@
-// 多订阅聚合配置（仅保留TXT节点数据）
 let 订阅路径 = "订阅路径";
 let 伪装网页;
 let 手动输入列表 = [];
@@ -20,8 +19,7 @@ export default {
   async fetch(访问请求, env) {
     订阅路径 = env.SUB_PATH ?? 订阅路径;
     伪装网页 = env.FAKE_WEB;
-    
-    // 仅处理TXT变量中的节点信息
+
     if (env.TXT) {
       手动输入列表 = env.TXT.split('\n')
         .map(line => line.trim())
@@ -34,8 +32,6 @@ export default {
     }
 
     const url = new URL(访问请求.url);
-    const 读取我的请求标头 = 访问请求.headers.get("Upgrade");
-    const WS请求 = 读取我的请求标头 == "websocket";
 
     const 路径配置 = {
       威图锐: `/${encodeURIComponent(订阅路径)}/${威图锐}`,
@@ -47,7 +43,7 @@ export default {
                       url.pathname === 路径配置.科拉什 ||
                       url.pathname === 路径配置.通用订阅;
 
-    if (!WS请求 && !是正确路径) {
+    if (!是正确路径) {
       if (伪装网页) {
         try {
           const targetBase = 伪装网页.startsWith('https://')
@@ -75,10 +71,8 @@ export default {
       }
     }
 
-    if (!WS请求) {
-      // 获取节点信息（仅来自TXT）
-      const 节点信息 = await 获取节点信息();
-      
+      const 节点信息 = 获取节点信息();
+
       if (url.pathname === 路径配置.威图锐) {
         return 威图锐配置文件(节点信息);
       }
@@ -96,14 +90,11 @@ export default {
         const 生成配置 = 配置生成器[工具 || "tips"];
         return 生成配置();
       }
-    }
-
     return new Response(null, { status: 404 });
   },
 };
 
-// 获取节点信息（仅处理TXT中的节点）
-async function 获取节点信息() {
+function 获取节点信息() {
   let 所有节点信息 = [];
   
   // 添加从TXT获取的自定义节点
@@ -124,14 +115,15 @@ async function 获取节点信息() {
     }];
   }
 
-  // 基于地址去重，保留第一个出现的节点
-  const 已见主机名 = new Set();
+  // 核心去重逻辑：基于地址去重，不考虑UUID，保留第一个出现的节点
+  const 已见地址 = new Set(); // 用于记录已出现过的地址
   const 去重节点信息 = [];
   
   所有节点信息.forEach((节点) => {
-    if (!已见主机名.has(节点.地址)) {
-      已见主机名.add(节点.地址);
-      // 重新编号节点名字
+    // 仅通过地址判断是否重复，忽略UUID差异
+    if (!已见地址.has(节点.地址)) {
+      已见地址.add(节点.地址);
+      // 重新编号节点名字（基于去重后的顺序）
       节点.节点名字 = `节点-${去重节点信息.length + 1}`;
       去重节点信息.push(节点);
     }
